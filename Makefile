@@ -324,19 +324,19 @@ show-rocm-command:
 	@printf '"%s/bin/llama-server" \\\n' "$(PROJECT_DIR)/$(ROCM_BUILD)"
 	@printf '  -m ~/models/your_model.gguf \\\n'
 	@printf '  -a your_model_name \\\n'
-	@printf '  -mm ~/models/your_mmproj.gguf \\\n'
+	@printf '  -mm ~/models/your_mmproj.gguf --image-min-tokens 1024 \\\n'
 	@printf '  --host 0.0.0.0 \\\n'
 	@printf '  --port 8888 \\\n'
 	@printf '  --jinja \\\n'
-	@printf '  -ngl 99 \\\n'
+	@printf '  -ngl 999 -b 2048 -ub 1024 -t 16 -np 1 \\\n'
 	@printf '  -c 262144 \\\n'
 	@printf '  --load-mode none \\\n'
-	@printf '  -fa on \\\n'
+	@printf '  -fa on --temp 1.0 --top-k 20 --top-p 0.95 --min-p 0 --presence-penalty 0 --repeat-penalty 1.0 --reasoning on --reasoning-effort xhigh --reasoning-preserve --reasoning-format deepseek \\\n'
 	@printf '  -md ~/models/your_mmproj.gguf \\\n'
 	@printf '  -ctk q4_0 \\\n'
 	@printf '  -ctv q4_0 \\\n'
-	@printf '  --spec-type draft-drafttype \\\n'
-	@printf '  --spec-draft-ngl all\n'
+	@printf '  --spec-type draft-mtp \\\n'
+	@printf '  --spec-draft-ngl all --spec-draft-n-max 4 --agent \n'
 	@echo
 	@echo "=============================================================="
 	@echo
@@ -369,15 +369,15 @@ show-vulkan-command:
 	@printf '  --host 0.0.0.0 \\\n'
 	@printf '  --port 8888 \\\n'
 	@printf '  --jinja \\\n'
-	@printf '  -ngl 99 \\\n'
+	@printf '  -ngl 999 -b 2048 -ub 1024 -t 16 -np 1 \\\n'
 	@printf '  -c 262144 \\\n'
 	@printf '  --load-mode none \\\n'
-	@printf '  -fa on \\\n'
+	@printf '  -fa on --temp 1.0 --top-k 20 --top-p 0.95 --min-p 0 --presence-penalty 0 --repeat-penalty 1.0 --reasoning on --reasoning-effort xhigh --reasoning-preserve --reasoning-format deepseek \\\n'
 	@printf '  -md ~/models/your_mmproj.gguf \\\n'
 	@printf '  -ctk q4_0 \\\n'
 	@printf '  -ctv q4_0 \\\n'
-	@printf '  --spec-type draft-drafttype \\\n'
-	@printf '  --spec-draft-ngl all\n'
+	@printf '  --spec-type draft-mtp \\\n'
+	@printf '  --spec-draft-ngl all --spec-draft-n-max 4 --agent \n'
 	@echo
 	@echo "=============================================================="
 	@echo

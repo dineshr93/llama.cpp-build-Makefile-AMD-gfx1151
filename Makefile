@@ -94,7 +94,8 @@ ROCM_FLAGS := \
 	-DGGML_VULKAN=OFF \
 	-DGGML_CUDA=OFF \
 	-DGGML_MUSA=OFF \
-	-DGPU_TARGETS=$(GPU_TARGETS)
+	-DGPU_TARGETS=$(GPU_TARGETS) \
+	-DAMDGPU_TARGETS=$(GPU_TARGETS)
 
 # -----------------------------------------------------------------------------
 # Vulkan

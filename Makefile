@@ -338,7 +338,18 @@ show-rocm-command:
 	@echo
 	@printf 'LD_LIBRARY_PATH="%s/bin" \\\n' "$(PROJECT_DIR)/$(ROCM_BUILD)"
 	@printf '"%s/bin/llama-server" \\\n' "$(PROJECT_DIR)/$(ROCM_BUILD)"
-	@printf '  -m ~/models/your_model.gguf -ngl 99 -fa on -c 8192 -b 2048 -ub 512\n'
+	@printf '  -m ~/models/your_model.gguf \\\n'
+	@printf '  -a your_model \\\n'
+	@printf '  -mm ~/models/mmproj-BF32.gguf --image-min-tokens 1024 \\\n'
+	@printf '  --host 0.0.0.0 \\\n'
+	@printf '  --port 8888 \\\n'
+	@printf '  -c 162144 --jinja -ngl 999 \\\n'
+	@printf '  --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-ngl all \\\n'
+	@printf '  -b 2048 -ub 1024 -t 16 -np 1 \\\n'
+	@printf '  --load-mode none -fa on \\\n'
+	@printf '  --temp 1.0 --top-k 20 --top-p 0.85 --min-p 0 \\\n'
+	@printf '  --presence-penalty 0 --repeat-penalty 1.0 \\\n'
+	@printf '  --reasoning on --reasoning-effort xhigh --reasoning-preserve --reasoning-format deepseek\n'
 	@echo
 
 .PHONY: show-rocm10-command
@@ -349,7 +360,18 @@ show-rocm10-command:
 	@printf 'LD_LIBRARY_PATH="%s/lib:%s/bin" \\\n' "$(ROCM10_PATH)" "$(PROJECT_DIR)/$(ROCM10_BUILD)"
 	@printf 'ROCBLAS_USE_HIPBLASLT=1 \\\n'
 	@printf '"%s/bin/llama-server" \\\n' "$(PROJECT_DIR)/$(ROCM10_BUILD)"
-	@printf '  -m ~/models/your_model.gguf -ngl 99 -fa on -c 8192 -b 2048 -ub 512\n'
+	@printf '  -m ~/models/your_model.gguf \\\n'
+	@printf '  -a your_model \\\n'
+	@printf '  -mm ~/models/mmproj-BF32.gguf --image-min-tokens 1024 \\\n'
+	@printf '  --host 0.0.0.0 \\\n'
+	@printf '  --port 8888 \\\n'
+	@printf '  -c 162144 --jinja -ngl 999 \\\n'
+	@printf '  --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-ngl all \\\n'
+	@printf '  -b 2048 -ub 1024 -t 16 -np 1 \\\n'
+	@printf '  --load-mode none -fa on \\\n'
+	@printf '  --temp 1.0 --top-k 20 --top-p 0.85 --min-p 0 \\\n'
+	@printf '  --presence-penalty 0 --repeat-penalty 1.0 \\\n'
+	@printf '  --reasoning on --reasoning-effort xhigh --reasoning-preserve --reasoning-format deepseek\n'
 	@echo
 
 .PHONY: show-vulkan-command
@@ -359,7 +381,18 @@ show-vulkan-command:
 	@echo
 	@printf 'LD_LIBRARY_PATH="%s/bin" \\\n' "$(PROJECT_DIR)/$(VULKAN_BUILD)"
 	@printf '"%s/bin/llama-server" \\\n' "$(PROJECT_DIR)/$(VULKAN_BUILD)"
-	@printf '  -m ~/models/your_model.gguf -ngl 99 -fa on -c 8192 -b 2048 -ub 512\n'
+	@printf '  -m ~/models/your_model.gguf \\\n'
+	@printf '  -a your_model \\\n'
+	@printf '  -mm ~/models/mmproj-BF32.gguf --image-min-tokens 1024 \\\n'
+	@printf '  --host 0.0.0.0 \\\n'
+	@printf '  --port 8888 \\\n'
+	@printf '  -c 162144 --jinja -ngl 999 \\\n'
+	@printf '  --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-ngl all \\\n'
+	@printf '  -b 2048 -ub 1024 -t 16 -np 1 \\\n'
+	@printf '  --load-mode none -fa on \\\n'
+	@printf '  --temp 1.0 --top-k 20 --top-p 0.85 --min-p 0 \\\n'
+	@printf '  --presence-penalty 0 --repeat-penalty 1.0 \\\n'
+	@printf '  --reasoning on --reasoning-effort xhigh --reasoning-preserve --reasoning-format deepseek\n'
 	@echo
 
 # =============================================================================

@@ -12,7 +12,8 @@
 #   - llama.cpp forks based on current upstream
 #
 # Backends:
-#   ROCm / HIP
+#   ROCm / HIP (legacy)
+#   ROCm 10 (TheRock / core-10.0)
 #   Vulkan
 #
 # IMPORTANT:
@@ -31,9 +32,10 @@ JOBS       ?= $(shell nproc)
 
 GPU_TARGETS ?= gfx1151
 
-ROCM_PATH ?= /opt/rocm
+ROCM_PATH   ?= /opt/rocm
+ROCM10_PATH ?= /opt/rocm/core-10.0
 
-# Let ROCm determine the correct clang installation.
+# Let ROCm determine the correct clang installation (legacy path)
 HIPCXX ?= $(shell command -v hipcc >/dev/null 2>&1 && hipconfig -l 2>/dev/null)/clang
 HIP_PATH ?= $(shell hipconfig -R 2>/dev/null)
 
@@ -44,18 +46,11 @@ PROJECT_DIR := $(CURDIR)
 # -----------------------------------------------------------------------------
 
 ROCM_BUILD   := build-rocm
+ROCM10_BUILD := build-rocm10
 VULKAN_BUILD := build-vulkan
 
 # -----------------------------------------------------------------------------
 # Common llama.cpp configuration
-#
-# DO NOT set GGML_BUILD_EXAMPLES=ON.
-#
-# ggml/examples does not exist in the normal llama.cpp source tree and causes:
-#
-#   add_subdirectory given source "examples" which is not an existing directory
-#
-# llama.cpp examples are controlled separately by LLAMA_BUILD_EXAMPLES.
 # -----------------------------------------------------------------------------
 
 COMMON_FLAGS := \
@@ -68,24 +63,26 @@ COMMON_FLAGS := \
 	-DGGML_CCACHE=ON
 
 # -----------------------------------------------------------------------------
-# ROCm / HIP
-#
-# Optimized for gfx1151 / Strix Halo.
-#
-# GPU_TARGETS:
-#   gfx1151
-#
-# ROCWMMA:
-#   Flash Attention acceleration.
-#
-# NO_VMM:
-#   Recommended for current gfx1151 configurations.
-#
-# MMQ_MFMA:
-#   Enables MFMA path where supported.
+# ROCm / HIP (legacy)
 # -----------------------------------------------------------------------------
 
 ROCM_FLAGS := \
+	$(COMMON_FLAGS) \
+	-DGGML_HIP=ON \
+	-DGGML_HIP_ROCWMMA_FATTN=ON \
+	-DGGML_HIP_NO_VMM=ON \
+	-DGGML_HIP_MMQ_MFMA=ON \
+	-DGGML_VULKAN=OFF \
+	-DGGML_CUDA=OFF \
+	-DGGML_MUSA=OFF \
+	-DGPU_TARGETS=$(GPU_TARGETS) \
+	-DAMDGPU_TARGETS=$(GPU_TARGETS)
+
+# -----------------------------------------------------------------------------
+# ROCm 10 (TheRock / core-10.0)
+# -----------------------------------------------------------------------------
+
+ROCM10_FLAGS := \
 	$(COMMON_FLAGS) \
 	-DGGML_HIP=ON \
 	-DGGML_HIP_ROCWMMA_FATTN=ON \
@@ -123,36 +120,40 @@ help:
 	@echo "=============================================================="
 	@echo
 	@echo "Build:"
-	@echo "  make rocm              Build llama-server with ROCm/HIP, then print run command"
-	@echo "  make vulkan            Build llama-server with Vulkan, then print run command"
-	@echo "  make both              Build ROCm + Vulkan, then print both run commands"
+	@echo "  make rocm              Build with legacy ROCm/HIP"
+	@echo "  make rocm10            Build with ROCm 10 (core-10.0)"
+	@echo "  make vulkan            Build with Vulkan"
+	@echo "  make both              Build ROCm + Vulkan"
 	@echo
 	@echo "Configuration:"
 	@echo "  make info              Show detected build configuration"
 	@echo
 	@echo "Clean:"
 	@echo "  make clean             Remove all build directories"
-	@echo "  make rebuild-rocm      Clean and rebuild ROCm"
+	@echo "  make rebuild-rocm      Clean and rebuild legacy ROCm"
+	@echo "  make rebuild-rocm10    Clean and rebuild ROCm 10"
 	@echo "  make rebuild-vulkan    Clean and rebuild Vulkan"
-	@echo "  make rebuild           Clean and rebuild both"
+	@echo "  make rebuild           Clean and rebuild everything"
 	@echo
 	@echo "Verification:"
-	@echo "  make verify-rocm       Show ROCm llama-server binary"
-	@echo "  make verify-vulkan     Show Vulkan llama-server binary"
+	@echo "  make verify-rocm       Show ROCm binary"
+	@echo "  make verify-rocm10     Show ROCm 10 binary"
+	@echo "  make verify-vulkan     Show Vulkan binary"
 	@echo
-	@echo "Run commands (printed automatically after a build):"
-	@echo "  make show-rocm-command    Print ROCm llama-server run command"
-	@echo "  make show-vulkan-command  Print Vulkan llama-server run command"
+	@echo "Run commands:"
+	@echo "  make show-rocm-command"
+	@echo "  make show-rocm10-command"
+	@echo "  make show-vulkan-command"
 	@echo
 	@echo "Examples:"
-	@echo "  make rocm"
+	@echo "  make rocm10"
 	@echo "  make vulkan"
 	@echo "  make both JOBS=32"
-	@echo "  make rocm BUILD_TYPE=RelWithDebInfo"
 	@echo
 	@echo "Variables:"
 	@echo "  GPU_TARGETS=$(GPU_TARGETS)"
 	@echo "  ROCM_PATH=$(ROCM_PATH)"
+	@echo "  ROCM10_PATH=$(ROCM10_PATH)"
 	@echo "  BUILD_TYPE=$(BUILD_TYPE)"
 	@echo "  JOBS=$(JOBS)"
 	@echo
@@ -173,17 +174,19 @@ info:
 	@echo "Build type       : $(BUILD_TYPE)"
 	@echo "Parallel jobs    : $(JOBS)"
 	@echo "ROCm path        : $(ROCM_PATH)"
+	@echo "ROCm 10 path     : $(ROCM10_PATH)"
 	@echo "HIP_PATH         : $(HIP_PATH)"
 	@echo "HIPCXX           : $(HIPCXX)"
 	@echo "ROCm build       : $(ROCM_BUILD)"
+	@echo "ROCm 10 build    : $(ROCM10_BUILD)"
 	@echo "Vulkan build     : $(VULKAN_BUILD)"
 	@echo
-	@echo "ROCm:"
-	@if command -v hipcc >/dev/null 2>&1; then \
-		echo "  hipcc          : $$(command -v hipcc)"; \
-		hipcc --version | head -n 3; \
+	@echo "ROCm 10:"
+	@if [ -x "$(ROCM10_PATH)/bin/rocminfo" ]; then \
+		echo "  rocminfo       : $(ROCM10_PATH)/bin/rocminfo"; \
+		$(ROCM10_PATH)/bin/rocminfo | grep -E 'Name:.*gfx' | head -3; \
 	else \
-		echo "  hipcc          : NOT FOUND"; \
+		echo "  rocminfo       : NOT FOUND"; \
 	fi
 	@echo
 	@echo "Vulkan:"
@@ -195,27 +198,19 @@ info:
 	@echo
 
 # =============================================================================
-# ROCm configuration
+# ROCm (legacy)
 # =============================================================================
 
 .PHONY: configure-rocm
 configure-rocm:
 	@echo
 	@echo "=============================================================="
-	@echo " Configuring ROCm / HIP"
+	@echo " Configuring ROCm / HIP (legacy)"
 	@echo "=============================================================="
 	@echo " GPU target : $(GPU_TARGETS)"
 	@echo " ROCm path  : $(ROCM_PATH)"
-	@echo " HIP_PATH   : $(HIP_PATH)"
-	@echo " HIPCXX     : $(HIPCXX)"
 	@echo "=============================================================="
 	@echo
-
-	@if [ -z "$(HIP_PATH)" ]; then \
-		echo "ERROR: hipconfig could not determine HIP_PATH."; \
-		echo "Check that ROCm is installed and hipconfig is in PATH."; \
-		exit 1; \
-	fi
 
 	HIPCXX="$(HIPCXX)" \
 	HIP_PATH="$(HIP_PATH)" \
@@ -223,17 +218,11 @@ configure-rocm:
 		-B "$(ROCM_BUILD)" \
 		$(ROCM_FLAGS)
 
-# =============================================================================
-# ROCm build
-# =============================================================================
-
 .PHONY: rocm
 rocm: configure-rocm
 	@echo
 	@echo "=============================================================="
-	@echo " Building llama-server"
-	@echo " Backend    : ROCm / HIP"
-	@echo " GPU        : $(GPU_TARGETS)"
+	@echo " Building llama-server (legacy ROCm)"
 	@echo "=============================================================="
 	@echo
 
@@ -242,15 +231,57 @@ rocm: configure-rocm
 		--parallel "$(JOBS)"
 
 	@echo
-	@echo "=============================================================="
-	@echo " ROCm build complete"
-	@echo "=============================================================="
+	@echo "Legacy ROCm build complete"
 	@find "$(ROCM_BUILD)/bin" -maxdepth 1 -type f -name 'llama-server*' -print 2>/dev/null || true
-	@echo
 	@$(MAKE) --no-print-directory show-rocm-command
 
 # =============================================================================
-# Vulkan configuration
+# ROCm 10
+# =============================================================================
+
+.PHONY: configure-rocm10
+configure-rocm10:
+	@echo
+	@echo "=============================================================="
+	@echo " Configuring ROCm 10 / HIP"
+	@echo "=============================================================="
+	@echo " GPU target : $(GPU_TARGETS)"
+	@echo " ROCm path  : $(ROCM10_PATH)"
+	@echo "=============================================================="
+	@echo
+
+	@if [ ! -d "$(ROCM10_PATH)" ]; then \
+		echo "ERROR: ROCm 10 path not found: $(ROCM10_PATH)"; \
+		exit 1; \
+	fi
+
+	HIPCXX="$(ROCM10_PATH)/bin/hipcc" \
+	HIP_PATH="$(ROCM10_PATH)" \
+	ROCM_PATH="$(ROCM10_PATH)" \
+	cmake -S . \
+		-B "$(ROCM10_BUILD)" \
+		$(ROCM10_FLAGS) \
+		-DCMAKE_PREFIX_PATH="$(ROCM10_PATH)"
+
+.PHONY: rocm10
+rocm10: configure-rocm10
+	@echo
+	@echo "=============================================================="
+	@echo " Building llama-server (ROCm 10)"
+	@echo "=============================================================="
+	@echo
+
+	cmake --build "$(ROCM10_BUILD)" \
+		--config "$(BUILD_TYPE)" \
+		--parallel "$(JOBS)"
+
+	@echo
+	@echo "ROCm 10 build complete"
+	@find "$(ROCM10_BUILD)/bin" -maxdepth 1 -type f -name 'llama-server*' -print 2>/dev/null || true
+	@$(MAKE) --no-print-directory show-rocm10-command
+
+# =============================================================================
+# Vulkan
 # =============================================================================
 
 .PHONY: configure-vulkan
@@ -265,16 +296,11 @@ configure-vulkan:
 		-B "$(VULKAN_BUILD)" \
 		$(VULKAN_FLAGS)
 
-# =============================================================================
-# Vulkan build
-# =============================================================================
-
 .PHONY: vulkan
 vulkan: configure-vulkan
 	@echo
 	@echo "=============================================================="
-	@echo " Building llama-server"
-	@echo " Backend    : Vulkan"
+	@echo " Building llama-server (Vulkan)"
 	@echo "=============================================================="
 	@echo
 
@@ -283,104 +309,50 @@ vulkan: configure-vulkan
 		--parallel "$(JOBS)"
 
 	@echo
-	@echo "=============================================================="
-	@echo " Vulkan build complete"
-	@echo "=============================================================="
+	@echo "Vulkan build complete"
 	@find "$(VULKAN_BUILD)/bin" -maxdepth 1 -type f -name 'llama-server*' -print 2>/dev/null || true
-	@echo
 	@$(MAKE) --no-print-directory show-vulkan-command
 
 # =============================================================================
-# Both backends
-# =============================================================================
-#
-# NOTE: rocm and vulkan already print their own run command as their last
-# step, so "both" gets both commands for free without duplicating output.
+# Both
 # =============================================================================
 
 .PHONY: both
 both: rocm vulkan
 
 # =============================================================================
-# ROCm server command
+# Run commands
 # =============================================================================
 
 .PHONY: show-rocm-command
 show-rocm-command:
-	@if [ ! -x "$(ROCM_BUILD)/bin/llama-server" ]; then \
-		echo; \
-		echo "ERROR: llama-server was not found:"; \
-		echo "  $(PROJECT_DIR)/$(ROCM_BUILD)/bin/llama-server"; \
-		exit 1; \
-	fi
-
 	@echo
-	@echo "=============================================================="
-	@echo " ROCm build complete"
-	@echo "=============================================================="
-	@echo
-	@echo "Run llama-server with:"
+	@echo "Run (legacy ROCm):"
 	@echo
 	@printf 'LD_LIBRARY_PATH="%s/bin" \\\n' "$(PROJECT_DIR)/$(ROCM_BUILD)"
 	@printf '"%s/bin/llama-server" \\\n' "$(PROJECT_DIR)/$(ROCM_BUILD)"
-	@printf '  -m ~/models/your_model.gguf \\\n'
-	@printf '  -a your_model_name \\\n'
-	@printf '  -mm ~/models/your_mmproj.gguf --image-min-tokens 1024 \\\n'
-	@printf '  --host 0.0.0.0 \\\n'
-	@printf '  --port 8888 \\\n'
-	@printf '  --jinja \\\n'
-	@printf '  -ngl 999 -b 2048 -ub 1024 -t 16 -np 1 \\\n'
-	@printf '  -c 262144 \\\n'
-	@printf '  --load-mode none \\\n'
-	@printf '  -fa on --temp 1.0 --top-k 20 --top-p 0.95 --min-p 0 --presence-penalty 0 --repeat-penalty 1.0 --reasoning on --reasoning-effort xhigh --reasoning-preserve --reasoning-format deepseek \\\n'
-	@printf '  -md ~/models/your_mmproj.gguf \\\n'
-	@printf '  -ctk q4_0 \\\n'
-	@printf '  -ctv q4_0 \\\n'
-	@printf '  --spec-type draft-mtp \\\n'
-	@printf '  --spec-draft-ngl all --spec-draft-n-max 4 --agent \n'
-	@echo
-	@echo "=============================================================="
+	@printf '  -m ~/models/your_model.gguf -ngl 99 -fa on -c 8192 -b 2048 -ub 512\n'
 	@echo
 
-# =============================================================================
-# Vulkan server command
-# =============================================================================
+.PHONY: show-rocm10-command
+show-rocm10-command:
+	@echo
+	@echo "Run (ROCm 10):"
+	@echo
+	@printf 'LD_LIBRARY_PATH="%s/lib:%s/bin" \\\n' "$(ROCM10_PATH)" "$(PROJECT_DIR)/$(ROCM10_BUILD)"
+	@printf 'ROCBLAS_USE_HIPBLASLT=1 \\\n'
+	@printf '"%s/bin/llama-server" \\\n' "$(PROJECT_DIR)/$(ROCM10_BUILD)"
+	@printf '  -m ~/models/your_model.gguf -ngl 99 -fa on -c 8192 -b 2048 -ub 512\n'
+	@echo
 
 .PHONY: show-vulkan-command
 show-vulkan-command:
-	@if [ ! -x "$(VULKAN_BUILD)/bin/llama-server" ]; then \
-		echo; \
-		echo "ERROR: llama-server was not found:"; \
-		echo "  $(PROJECT_DIR)/$(VULKAN_BUILD)/bin/llama-server"; \
-		exit 1; \
-	fi
-
 	@echo
-	@echo "=============================================================="
-	@echo " Vulkan build complete"
-	@echo "=============================================================="
-	@echo
-	@echo "Run llama-server with:"
+	@echo "Run (Vulkan):"
 	@echo
 	@printf 'LD_LIBRARY_PATH="%s/bin" \\\n' "$(PROJECT_DIR)/$(VULKAN_BUILD)"
 	@printf '"%s/bin/llama-server" \\\n' "$(PROJECT_DIR)/$(VULKAN_BUILD)"
-	@printf '  -m ~/models/your_model.gguf \\\n'
-	@printf '  -a your_model_name \\\n'
-	@printf '  -mm ~/models/your_mmproj.gguf \\\n'
-	@printf '  --host 0.0.0.0 \\\n'
-	@printf '  --port 8888 \\\n'
-	@printf '  --jinja \\\n'
-	@printf '  -ngl 999 -b 2048 -ub 1024 -t 16 -np 1 \\\n'
-	@printf '  -c 262144 \\\n'
-	@printf '  --load-mode none \\\n'
-	@printf '  -fa on --temp 1.0 --top-k 20 --top-p 0.95 --min-p 0 --presence-penalty 0 --repeat-penalty 1.0 --reasoning on --reasoning-effort xhigh --reasoning-preserve --reasoning-format deepseek \\\n'
-	@printf '  -md ~/models/your_mmproj.gguf \\\n'
-	@printf '  -ctk q4_0 \\\n'
-	@printf '  -ctv q4_0 \\\n'
-	@printf '  --spec-type draft-mtp \\\n'
-	@printf '  --spec-draft-ngl all --spec-draft-n-max 4 --agent \n'
-	@echo
-	@echo "=============================================================="
+	@printf '  -m ~/models/your_model.gguf -ngl 99 -fa on -c 8192 -b 2048 -ub 512\n'
 	@echo
 
 # =============================================================================
@@ -389,8 +361,13 @@ show-vulkan-command:
 
 .PHONY: verify-rocm
 verify-rocm:
-	@echo "ROCm llama-server:"
+	@echo "Legacy ROCm llama-server:"
 	@find "$(ROCM_BUILD)" -type f -name 'llama-server*' -exec file {} \; 2>/dev/null || true
+
+.PHONY: verify-rocm10
+verify-rocm10:
+	@echo "ROCm 10 llama-server:"
+	@find "$(ROCM10_BUILD)" -type f -name 'llama-server*' -exec file {} \; 2>/dev/null || true
 
 .PHONY: verify-vulkan
 verify-vulkan:
@@ -398,21 +375,22 @@ verify-vulkan:
 	@find "$(VULKAN_BUILD)" -type f -name 'llama-server*' -exec file {} \; 2>/dev/null || true
 
 # =============================================================================
-# Clean
+# Clean / Rebuild
 # =============================================================================
 
 .PHONY: clean
 clean:
-	rm -rf "$(ROCM_BUILD)" "$(VULKAN_BUILD)"
-
-# =============================================================================
-# Rebuild
-# =============================================================================
+	rm -rf "$(ROCM_BUILD)" "$(ROCM10_BUILD)" "$(VULKAN_BUILD)"
 
 .PHONY: rebuild-rocm
 rebuild-rocm:
 	rm -rf "$(ROCM_BUILD)"
 	$(MAKE) rocm
+
+.PHONY: rebuild-rocm10
+rebuild-rocm10:
+	rm -rf "$(ROCM10_BUILD)"
+	$(MAKE) rocm10
 
 .PHONY: rebuild-vulkan
 rebuild-vulkan:
@@ -421,5 +399,5 @@ rebuild-vulkan:
 
 .PHONY: rebuild
 rebuild:
-	rm -rf "$(ROCM_BUILD)" "$(VULKAN_BUILD)"
+	rm -rf "$(ROCM_BUILD)" "$(ROCM10_BUILD)" "$(VULKAN_BUILD)"
 	$(MAKE) both

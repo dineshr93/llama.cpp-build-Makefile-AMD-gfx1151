@@ -35,7 +35,7 @@ GPU_TARGETS ?= gfx1151
 ROCM_PATH   ?= /opt/rocm
 ROCM10_PATH ?= /opt/rocm/core-10.0
 
-# Let ROCm determine the correct clang installation (legacy path)
+# Legacy ROCm
 HIPCXX ?= $(shell command -v hipcc >/dev/null 2>&1 && hipconfig -l 2>/dev/null)/clang
 HIP_PATH ?= $(shell hipconfig -R 2>/dev/null)
 
@@ -50,7 +50,7 @@ ROCM10_BUILD := build-rocm10
 VULKAN_BUILD := build-vulkan
 
 # -----------------------------------------------------------------------------
-# Common llama.cpp configuration
+# Common flags
 # -----------------------------------------------------------------------------
 
 COMMON_FLAGS := \
@@ -63,7 +63,7 @@ COMMON_FLAGS := \
 	-DGGML_CCACHE=ON
 
 # -----------------------------------------------------------------------------
-# ROCm / HIP (legacy)
+# ROCm legacy flags
 # -----------------------------------------------------------------------------
 
 ROCM_FLAGS := \
@@ -79,7 +79,7 @@ ROCM_FLAGS := \
 	-DAMDGPU_TARGETS=$(GPU_TARGETS)
 
 # -----------------------------------------------------------------------------
-# ROCm 10 (TheRock / core-10.0)
+# ROCm 10 flags
 # -----------------------------------------------------------------------------
 
 ROCM10_FLAGS := \
@@ -95,7 +95,7 @@ ROCM10_FLAGS := \
 	-DAMDGPU_TARGETS=$(GPU_TARGETS)
 
 # -----------------------------------------------------------------------------
-# Vulkan
+# Vulkan flags
 # -----------------------------------------------------------------------------
 
 VULKAN_FLAGS := \
@@ -121,24 +121,24 @@ help:
 	@echo
 	@echo "Build:"
 	@echo "  make rocm              Build with legacy ROCm/HIP"
-	@echo "  make rocm10            Build with ROCm 10 (core-10.0)"
+	@echo "  make rocm10            Build with ROCm 10 (core-10.0)  ← recommended"
 	@echo "  make vulkan            Build with Vulkan"
 	@echo "  make both              Build ROCm + Vulkan"
 	@echo
 	@echo "Configuration:"
 	@echo "  make info              Show detected build configuration"
 	@echo
-	@echo "Clean:"
+	@echo "Clean / Rebuild:"
 	@echo "  make clean             Remove all build directories"
-	@echo "  make rebuild-rocm      Clean and rebuild legacy ROCm"
-	@echo "  make rebuild-rocm10    Clean and rebuild ROCm 10"
-	@echo "  make rebuild-vulkan    Clean and rebuild Vulkan"
-	@echo "  make rebuild           Clean and rebuild everything"
+	@echo "  make rebuild-rocm      Clean + rebuild legacy ROCm"
+	@echo "  make rebuild-rocm10    Clean + rebuild ROCm 10"
+	@echo "  make rebuild-vulkan    Clean + rebuild Vulkan"
+	@echo "  make rebuild           Clean + rebuild everything"
 	@echo
 	@echo "Verification:"
-	@echo "  make verify-rocm       Show ROCm binary"
-	@echo "  make verify-rocm10     Show ROCm 10 binary"
-	@echo "  make verify-vulkan     Show Vulkan binary"
+	@echo "  make verify-rocm"
+	@echo "  make verify-rocm10"
+	@echo "  make verify-vulkan"
 	@echo
 	@echo "Run commands:"
 	@echo "  make show-rocm-command"
@@ -175,18 +175,21 @@ info:
 	@echo "Parallel jobs    : $(JOBS)"
 	@echo "ROCm path        : $(ROCM_PATH)"
 	@echo "ROCm 10 path     : $(ROCM10_PATH)"
-	@echo "HIP_PATH         : $(HIP_PATH)"
-	@echo "HIPCXX           : $(HIPCXX)"
 	@echo "ROCm build       : $(ROCM_BUILD)"
 	@echo "ROCm 10 build    : $(ROCM10_BUILD)"
 	@echo "Vulkan build     : $(VULKAN_BUILD)"
 	@echo
 	@echo "ROCm 10:"
 	@if [ -x "$(ROCM10_PATH)/bin/rocminfo" ]; then \
-		echo "  rocminfo       : $(ROCM10_PATH)/bin/rocminfo"; \
+		echo "  rocminfo       : found"; \
 		$(ROCM10_PATH)/bin/rocminfo | grep -E 'Name:.*gfx' | head -3; \
 	else \
 		echo "  rocminfo       : NOT FOUND"; \
+	fi
+	@if [ -x "$(ROCM10_PATH)/bin/amdclang" ]; then \
+		echo "  amdclang       : $(ROCM10_PATH)/bin/amdclang"; \
+	else \
+		echo "  amdclang       : NOT FOUND"; \
 	fi
 	@echo
 	@echo "Vulkan:"
@@ -206,9 +209,6 @@ configure-rocm:
 	@echo
 	@echo "=============================================================="
 	@echo " Configuring ROCm / HIP (legacy)"
-	@echo "=============================================================="
-	@echo " GPU target : $(GPU_TARGETS)"
-	@echo " ROCm path  : $(ROCM_PATH)"
 	@echo "=============================================================="
 	@echo
 
@@ -254,14 +254,20 @@ configure-rocm10:
 		echo "ERROR: ROCm 10 path not found: $(ROCM10_PATH)"; \
 		exit 1; \
 	fi
+	@if [ ! -x "$(ROCM10_PATH)/bin/amdclang" ]; then \
+		echo "ERROR: amdclang not found in $(ROCM10_PATH)/bin"; \
+		exit 1; \
+	fi
 
-	HIPCXX="$(ROCM10_PATH)/bin/hipcc" \
 	HIP_PATH="$(ROCM10_PATH)" \
 	ROCM_PATH="$(ROCM10_PATH)" \
 	cmake -S . \
 		-B "$(ROCM10_BUILD)" \
 		$(ROCM10_FLAGS) \
-		-DCMAKE_PREFIX_PATH="$(ROCM10_PATH)"
+		-DCMAKE_PREFIX_PATH="$(ROCM10_PATH)" \
+		-DCMAKE_HIP_COMPILER="$(ROCM10_PATH)/bin/amdclang" \
+		-DCMAKE_C_COMPILER="$(ROCM10_PATH)/bin/amdclang" \
+		-DCMAKE_CXX_COMPILER="$(ROCM10_PATH)/bin/amdclang++"
 
 .PHONY: rocm10
 rocm10: configure-rocm10

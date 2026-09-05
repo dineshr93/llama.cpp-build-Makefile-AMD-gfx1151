@@ -39,6 +39,15 @@ never interfere with each other.
 
 ## Backends
 
+### ROCm 10 (`make rocm10`)
+
+```sh
+# install https://rocm.docs.amd.com/en/latest/install/rocm.html?fam=ryzen&w=graphics&os=ubuntu&ubuntu-ver=26.04&i=amdgpu-install
+sudo apt install amdrocm-runtime-dev10.0
+sudo apt install amdrocm-blas-dev10.0
+sudo apt install amdrocm-hipblas-common-dev10.0
+```
+
 ### ROCm / HIP (`make rocm`)
 
 Optimized for gfx1151 / Strix Halo. Key CMake flags (see the `ROCM_FLAGS`

@@ -259,6 +259,7 @@ configure-rocm10:
 		exit 1; \
 	fi
 
+	# Important: do NOT set HIPCXX
 	HIP_PATH="$(ROCM10_PATH)" \
 	ROCM_PATH="$(ROCM10_PATH)" \
 	cmake -S . \

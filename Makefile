@@ -35,10 +35,6 @@ GPU_TARGETS ?= gfx1151
 ROCM_PATH   ?= /opt/rocm
 ROCM10_PATH ?= /opt/rocm/core-10.0
 
-# Legacy ROCm
-HIPCXX ?= $(shell command -v hipcc >/dev/null 2>&1 && hipconfig -l 2>/dev/null)/clang
-HIP_PATH ?= $(shell hipconfig -R 2>/dev/null)
-
 PROJECT_DIR := $(CURDIR)
 
 # -----------------------------------------------------------------------------

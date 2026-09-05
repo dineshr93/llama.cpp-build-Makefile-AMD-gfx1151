@@ -208,15 +208,25 @@ info:
 configure-rocm:
 	@echo
 	@echo "=============================================================="
-	@echo " Configuring ROCm / HIP (legacy)"
+	@echo " Configuring ROCm / HIP (classic-style target)"
 	@echo "=============================================================="
+	@echo " Note: system only has ROCm 10 → using $(ROCM10_PATH)"
 	@echo
 
-	HIPCXX="$(HIPCXX)" \
-	HIP_PATH="$(HIP_PATH)" \
+	@if [ ! -x "$(ROCM10_PATH)/bin/amdclang" ]; then \
+		echo "ERROR: amdclang not found in $(ROCM10_PATH)/bin"; \
+		exit 1; \
+	fi
+
+	HIP_PATH="$(ROCM10_PATH)" \
+	ROCM_PATH="$(ROCM10_PATH)" \
 	cmake -S . \
 		-B "$(ROCM_BUILD)" \
-		$(ROCM_FLAGS)
+		$(ROCM_FLAGS) \
+		-DCMAKE_PREFIX_PATH="$(ROCM10_PATH)" \
+		-DCMAKE_HIP_COMPILER="$(ROCM10_PATH)/bin/amdclang" \
+		-DCMAKE_C_COMPILER="$(ROCM10_PATH)/bin/amdclang" \
+		-DCMAKE_CXX_COMPILER="$(ROCM10_PATH)/bin/amdclang++"
 
 .PHONY: rocm
 rocm: configure-rocm

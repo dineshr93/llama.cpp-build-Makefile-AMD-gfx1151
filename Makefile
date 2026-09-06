@@ -360,7 +360,7 @@ show-rocm-command:
 	@printf 'LD_LIBRARY_PATH="%s/bin" \\\n' "$(PROJECT_DIR)/$(ROCM_BUILD)"
 	@printf '"%s/bin/llama-bench" \\\n' "$(PROJECT_DIR)/$(ROCM_BUILD)"
 	@printf '  -m ~/models/your_model.gguf \\\n'
-	@printf '  -p 4096 -n 128 -b 2048 -ub 2048 -ngl 999 -fa on -r 3 -o json\n'
+	@printf '  -p 4096 -n 128 -b 2048 -ub 2048 -ngl 999 -fa on -r 3 -o json'
 	@echo
 
 .PHONY: show-rocm10-command
@@ -388,7 +388,7 @@ show-rocm10-command:
 	@printf 'ROCBLAS_USE_HIPBLASLT=1 \\\n'
 	@printf '"%s/bin/llama-bench" \\\n' "$(PROJECT_DIR)/$(ROCM10_BUILD)"
 	@printf '  -m ~/models/your_model.gguf \\\n'
-	@printf '  -p 4096 -n 128 -b 2048 -ub 2048 -ngl 999 -fa on -r 3 -o json\n'
+	@printf '  -p 4096 -n 128 -b 2048 -ub 2048 -ngl 999 -fa on -r 3 -o json'
 	@echo
 
 .PHONY: show-vulkan-command
@@ -414,7 +414,7 @@ show-vulkan-command:
 	@printf 'LD_LIBRARY_PATH="%s/bin" \\\n' "$(PROJECT_DIR)/$(VULKAN_BUILD)"
 	@printf '"%s/bin/llama-bench" \\\n' "$(PROJECT_DIR)/$(VULKAN_BUILD)"
 	@printf '  -m ~/models/your_model.gguf \\\n'
-	@printf '  -p 4096 -n 128 -b 2048 -ub 2048 -ngl 999 -fa on -r 3 -o json\n'
+	@printf '  -p 4096 -n 128 -b 2048 -ub 2048 -ngl 999 -fa on -r 3 -o json'
 	@echo
 
 # =============================================================================

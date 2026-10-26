@@ -33,7 +33,7 @@ JOBS       ?= $(shell nproc)
 GPU_TARGETS ?= gfx1151
 
 ROCM_PATH   ?= /opt/rocm
-ROCM10_PATH ?= /opt/rocm/core-10.0
+ROCM10_PATH ?= /opt/rocm/core-10.1
 
 PROJECT_DIR := $(CURDIR)
 
